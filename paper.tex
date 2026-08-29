@@ -1,3 +1,20 @@
+% =====================================================================
+% The Compression Floor -- DiffuLM @ NeurIPS 2026 workshop submission
+% 4-page limit (workshop CFP), dblblindworkshop option, anonymized.
+%
+% FILES THIS EXPECTS IN THE SAME FOLDER:
+%   fig_bimodality.png        (from dlm_compression_floor/fig4_bimodality_full.png)
+%   fig_base_vs_sft.png       (base_vs_sft_comparison.png)
+%   references.bib
+%   neurips_2026.sty          (download from neurips.cc; NOT included here)
+%
+% BEFORE SUBMISSION -- three TODOs, all marked in-line below:
+%   1. \workshoptitle{...}  -> exact workshop name from the DiffuLM CFP
+%   2. \citep{dopsd2026}    -> fill the real citation of the concurrent
+%                              diffusion OPSD paper in references.bib
+%   3. If OPSD-1 post-training numbers land before the deadline, drop them
+%      into the marked sentence in Sec 4.3.
+% =====================================================================
 \documentclass{article}
 \usepackage[dblblindworkshop]{neurips_2026}
 % TODO(1): replace with the exact workshop title string from the CFP.
@@ -28,7 +45,7 @@
 \maketitle
 
 \begin{abstract}
-Block-diffusion language models accelerate generation by predicting multiple tokens per denoising step, but the limits of this compression remains poorly understood. Therefore, we study SDAR-4B-Chat with block size \textbf{32} on a mathematical benchmark and identify a sharp \textbf{compression floor} with three properties. First, quality of sample generation exhibits a phase transition rather than gradual degradation: across pooled schedules, \textbf{60\%} of outputs remain less repeated, while \textbf{23\%} collapse into severe repetition loops, with only \textbf{9\%} in intermediate regime. Second, supervised fine-tuning (SFT) can worsen compression tolerance. Dense supervision on revealed positions reduces one-token-per-step accuracy from \textbf{48\%} to \textbf{8\%}, whereas a matched masked-only objective held it at \textbf{20\%}. SFT also reduces the usable compression range from four to two tokens per step. Third, on-policy self-distillation inherits this floor through trajectory yield: at temperature \textbf{0.9}, the student produced \textbf{0} usable trajectories in \textbf{28} attempts, while temperature \textbf{0.3} with a larger generation budget yielded \textbf{38/50}. We replicate this yield collapse on a second model family, suggesting the phenomenon is not architecture-specific. Together, these results show that few-step diffusion language modeling is governed not only by the number of tokens revealed per step, but also by how supervision and sampling interact with the model's compression floor. Our findings highlight supervision density and sampling strategy as two practical levers for making accelerated diffusion-LM training reliable.
+Block-diffusion language models accelerate generation by predicting multiple tokens per denoising step, but the limits of this compression remain poorly understood. Therefore, we study SDAR-4B-Chat with block size \textbf{32} on a mathematical benchmark and identify a sharp \textbf{compression floor} with three properties. First, quality of sample generation exhibits a phase transition rather than gradual degradation: across pooled schedules, \textbf{60\%} of outputs remain largely repetition-free (repeat-4 < 0.2), while \textbf{23\%} collapse into severe repetition loops (repeat-4 > 0.7), with only \textbf{9\%} in intermediate regime (repeat-4 between 0.3 and 0.6). Second, supervised fine-tuning (SFT) can worsen compression tolerance. Dense supervision on all masked positions ($L_{all}$) reduces one-token-per-step accuracy from \textbf{48\%} to \textbf{8\%}, whereas supervision on commit-only positions ($L_{commit}$) holds it at \textbf{20\%}. SFT also reduces the usable compression range from four to two tokens per step. Third, on-policy self-distillation inherits this floor through trajectory yield: at temperature \textbf{0.9}, the student produced \textbf{0} usable trajectories in \textbf{28} attempts, while temperature \textbf{0.3} with a larger generation budget yielded \textbf{38/50}. We replicate this yield collapse on a second model family, suggesting the phenomenon is not architecture-specific. Together, these results show that few-step diffusion language modeling is governed not only by the number of tokens revealed per step, but also by how supervision and sampling interact with the model's compression floor. Our findings highlight supervision density and sampling strategy as two practical levers for making accelerated diffusion-LM training reliable. The code is available at \url{https://anonymous.4open.science/r/Compression_Floor--Diffusion_Language_Model-1BC2/README.md}.
 \end{abstract}
 
 \section{Introduction}
@@ -44,7 +61,7 @@ The failure mode at aggressive schedules is not a smooth quality decline that tr
     \centering
     \includegraphics[width=\linewidth]{pipeline.png}
     \caption{\textbf{The Compression Floor Evaluation Pipeline.}
-    We evaluate SDAR-4B-Chat-b32 with block size 32 on a fixed mathematical benchmark across decoding schedules with $t\in\{1,2,4,8,16,32\}$ tokens committed per denoising step. For each schedule, the model generates solutions using greedy decoding until EOS or a 1,536-token budget, with early stopping upon repetition collapse. We compute boxed rate, correct rate, repeat-4, collapse rate, and reference match for each problem, then aggregate results across schedules and difficulty levels. The same evaluation protocol is applied to the base model, SFT variants, and on-policy self-distillation experiments.}
+    We evaluate SDAR-4B-Chat-b32 with block size 32 on a fixed mathematical benchmark across decoding schedules with $t\in\{1,2,4,8,16\}$ tokens committed per denoising step (single-step t = 32 schedule is shown in the pipeline but not reported). For each schedule, the model generates solutions using greedy decoding until EOS or a 1,536-token budget, with early stopping upon repetition collapse. We compute boxed rate, correct rate, repeat-4, collapse rate, and reference match for each problem, then aggregate results across schedules and difficulty levels. The same evaluation protocol is applied to the base model, SFT variants, and on-policy self-distillation experiments.}
     \label{fig:compression_pipeline}
 \end{figure}
 
@@ -53,17 +70,17 @@ Self-distillation never reaches the training stage unless the student can produc
 Our contributions are the following measurements, all on one fixed benchmark:
 \begin{itemize}
   \item We show that few-step failure in a small block-diffusion model is a per-sample phase transition. Individual outputs are either fluent or collapsed, and mean metrics degrade only because the collapsed fraction grows (Section~\ref{sec:floor}).
-  \item We give a controlled comparison of SFT supervision density. Supervising all block positions destroys the model monotonically across a three-stage schedule curriculum. Supervising only masked positions, on matched schedules and data scale, roughly halves the damage and changes its structure, but does not restore base accuracy (Section~\ref{sec:sft}).
+  \item We compare SFT supervision density on a matched three-stage schedule curriculum. Supervising every masked position degrades the model monotonically; restricting supervision to the positions actually committed at each step roughly halves the damage and changes its structure, but does not restore base accuracy (Section~\ref{sec:sft}).
   \item We identify trajectory yield as the operating precondition of on-policy self-distillation for diffusion models, show that it is controlled by sampling temperature and budget, and replicate the yield collapse on a second model family (Section~\ref{sec:opsd}).
 \end{itemize}
 
-Recent work has pursued few-step diffusion language modeling along two complementary directions. Both masked and block-diffusion hybrids such as SDAR and TraDo reduce sequential depth by revealing multiple tokens in parallel, while training-free methods such as Fast-dLLM further accelerate inference without modifying the model. These approaches expose a fundamental trade-off between generation speed and the number of denoising steps, and recent analyses attribute few-step degradation to errors introduced when multiple tokens must be predicted simultaneously. A second line of work attempts to recover this lost quality through distillation. T3D distills on rollout trajectories produced under the target decoding procedure, while OPSD introduces on-policy self-distillation, in which teacher and student share weights and the teacher conditions on privileged information while both are evaluated on the student's own rollout. However, these approaches implicitly require the student to produce sufficiently useful trajectories for training. In contrast, we focus on the regime where this prerequisite itself breaks down: we characterize the compression floor at the level of individual generations and study how supervised fine-tuning and sampling choices move or expose this floor. Thus, rather than proposing another acceleration or distillation method, our work provides an empirical characterization of when few-step diffusion generation remains trainable and when it collapses.
+Recent work has pursued few-step diffusion language modeling along two complementary directions. Both masked and block-diffusion hybrids such as SDAR~\citep{cheng2025sdar} and TraDo~\citep{wang2025tracerl} reduce sequential depth by revealing multiple tokens in parallel, while training-free methods such as Fast-dLLM~\citep{wu2025fastdllm} further accelerate inference without modifying the model. These approaches expose a fundamental trade-off between generation speed and the number of denoising steps, and recent analyses attribute few-step degradation to errors introduced when multiple tokens must be predicted simultaneously. A second line of work attempts to recover this lost quality through distillation. T3D~\citep{zhang2026t3d} distills on rollout trajectories produced under the target decoding procedure, while OPSD \citep{zhao2026opsd} introduces on-policy self-distillation, in which teacher and student share weights and the teacher conditions on privileged information while both are evaluated on the student's own rollout. However, these approaches implicitly require the student to produce sufficiently useful trajectories for training. In contrast, we focus on the regime where this prerequisite itself breaks down: we characterize the compression floor at the level of individual generations and study how supervised fine-tuning and sampling choices move or expose this floor. Thus, rather than proposing another acceleration or distillation method, our work provides an empirical characterization of when few-step diffusion generation remains trainable and when it collapses.
 
 \section{Experimental Setup}
 \label{sec:setup}
 
 \textbf{Model and data:}
-We conduct our experiments on SDAR-4B-Chat-b32~\citep{cheng2025sdar}, a 4B-parameter block-diffusion language model with block size 32 (b32) and block size 16 (b16), obtained by adapting an autoregressive base model. Training and evaluation instances are drawn from DeepMath-103K~\citep{he2025deepmath}, which provides verified final answers together with three R1-generated solution traces per problem. We use a fixed held-out benchmark of 40 problems, stratified by dataset difficulty into 20 easy, 10 medium, and 10 hard instances. This subset was selected to provide balanced coverage across difficulty levels while keeping the extensive multi-schedule decoding and training experiments computationally feasible. Unless otherwise specified, fine-tuning is performed with LoRA adapters of rank 32 while keeping the base model frozen.
+We conduct our experiments on SDAR-4B-Chat~\citep{cheng2025sdar}, a 4B-parameter block-diffusion language model with block size 32 (b32) and block size 16 (b16), obtained by adapting an autoregressive base model. Training and evaluation instances are drawn from DeepMath-103K~\citep{he2025deepmath}, which provides verified final answers together with three R1-generated solution traces per problem. We use a fixed held-out benchmark of 40 problems, stratified by dataset difficulty into 20 easy, 10 medium, and 10 hard instances. This subset was selected to provide balanced coverage across difficulty levels while keeping the extensive multi-schedule decoding and training experiments computationally feasible. Unless otherwise specified, fine-tuning is performed with LoRA adapters of rank 32 while keeping the base model frozen.
 
 \textbf{Decoding protocol:}
 For a block containing 32 masked positions, we decode $t$ tokens per denoising step by committing the $t$ highest-confidence masked positions. Thus, $t=1$ requires 32 denoising steps per block, whereas $t=32$ completes the block in a single step. We evaluate schedules spanning $t\in\{1,2,4,8,16\}$ and use greedy decoding unless otherwise stated. Generations are limited to 1{,}536 tokens.
@@ -80,7 +97,7 @@ We use two evaluation harnesses for distinct experimental comparisons while keep
 \subsection{The floor is a per-sample phase transition}
 \label{sec:floor}
 
-Table~\ref{tab:base} reports the base model at block 32 across schedules. Accuracy holds up to $t=2$, degrades at $t=4$, and reaches zero between $t=4$ and $t=8$. The collapse-detector stop fraction mirrors this cliff, rising from 0 at $t\le 2$ to 0.62 at $t=16$. Block size 16 shows the identical cliff location (correct 0.20 at $t=4$, 0.00 at $t=8$; full grid omitted for space).
+Table~\ref{tab:base} reports the base model at block 32 across schedules. Accuracy holds up to $t=2$, degrades at $t=4$, and reaches zero between $t=4$ and $t=8$. The collapse-detector stop fraction mirrors this cliff, rising from 0 at $t\le 2$ to 0.62 at $t=16$. Block size 16 shows the identical cliff location (correct 0.20 at $t=4$, 0.00 at $t=8$).
 
 \begin{table}[H]
   \caption{Base SDAR-4B-Chat at block sizes 16 and 32 across decoding schedules (40 problems per cell, greedy). The accuracy cliff sits between 4 and 8 tokens per step. Collapse is the fraction of generations halted by the repetition detector.}
@@ -116,7 +133,7 @@ The mean curves hide the structure. Figure~\ref{fig:bimodality} pools per-proble
 
 We fine-tuned the model three ways on DeepMath solutions, always with LoRA, and benchmarked every checkpoint on the fixed 40 problems.
 
-\textbf{SFT shifts the cliff inward.} A three-stage SFT run that supervised all 32 block positions per denoising state was re-benchmarked across the full schedule grid (Figure~\ref{fig:basevssft}). Relative to the base model at block 32, its ceiling fell (correct 0.375 to 0.175 at $t=1$) and its cliff moved one octave earlier, from between $t=4$ and $t=8$ to between $t=2$ and $t=4$. Redundancy rose at every schedule. Reference-solution coverage at $t=1$ rose above base (0.506 versus 0.446) while accuracy fell, so the model learned to imitate reference phrasing at the cost of finishing problems. Medium-tier accuracy was zero at every schedule, including $t=1$.
+\textbf{SFT shifts the cliff inward.} A three-stage SFT run that supervised all currently masked positions per denoising state was re-benchmarked across the full schedule grid (Figure~\ref{fig:basevssft}). Relative to the base model at block 32, its ceiling fell (correct 0.375 to 0.175 at $t=1$) and its cliff moved one octave earlier, from between $t=4$ and $t=8$ to between $t=2$ and $t=4$. Redundancy rose at every schedule. Reference-solution coverage at $t=1$ rose above base (0.506 versus 0.446) while accuracy fell, so the model learned to imitate reference phrasing at the cost of finishing problems. Medium-tier accuracy was zero at every schedule, including $t=1$.
 
 \begin{figure}[!ht]
   \centering
@@ -125,22 +142,22 @@ We fine-tuned the model three ways on DeepMath solutions, always with LoRA, and 
   \label{fig:basevssft}
 \end{figure}
 
-\textbf{A three-stage curriculum lets us ask whether this collapse is the objective, or the data.} We ran two matched three-stage curricula (stages at 4, 2, and 1 tokens per step, 500 problems and 2 epochs per stage) that differ in both the loss and the data schedule. The dense arm supervises every block position at each denoising state and reuses the \emph{same} 500-problem pool across all three stages, giving each problem 6 effective epochs of exposure. The masked-only arm supervises only the still-masked positions, the standard masked-diffusion objective \citep{sahoo2024mdlm}, and draws a \emph{fresh} 500-problem pool for each stage (1,500 problems total, no reuse), specifically to remove the overfitting we observed in the dense arm. Because the two arms differ in loss and data simultaneously, this is not a clean ablation of the objective; it directly tests whether fixing the data-reuse problem is enough to recover base performance.
+\textbf{A three-stage curriculum lets us ask whether this collapse is the objective, or the data.} We ran two matched three-stage curricula (stages at 4, 2, and 1 tokens per step, 500 problems and 2 epochs per stage) that differ in both the loss and the data schedule. The dense arm supervises every currently masked position at each denoising state, in contrast to the standard masked-diffusion objective \citep{sahoo2024mdlm}, and reuses the same 500-problem pool across all three stages, giving each problem 6 effective epochs of exposure. The commit-only arm supervises only the $t$ highest-confidence masked positions, that is, exactly those the decoder commits at that step and draws a fresh 500-problem pool for each stage (1{,}500 problems total, no reuse), specifically to remove the overfitting we observed in the dense arm. Because the two arms differ in loss and data simultaneously, this is not a clean ablation of the objective; it directly tests whether fixing the data-reuse problem is enough to recover base performance.
 
-It is not. Table~\ref{tab:curriculum} shows that dense supervision degrades monotonically and severely as the curriculum progresses (48\% to 8\% correct at $t=1$), consistent with the repeated pool driving memorization-then-collapse rather than a property of dense supervision per se. Removing the reuse in the masked-only arm recovers 10 to 18 points at every stage and roughly halves the repetition increase, confirming that data reuse explains a large part of the dense arm's failure. But the masked-only arm's best checkpoint still trails the base model by 18 points at $t=1$ (30\% versus 48\%), despite using fresh, non-repeated data at every stage. So while overfitting on a reused pool is the dominant driver of the dense arm's collapse, it does not account for all of the degradation: fine-tuning on this curriculum degrades the model even when overfitting is controlled for, and we cannot attribute that residual gap to the loss function alone given the remaining confounds below.
+It is not. Table~\ref{tab:curriculum} shows that dense supervision degrades monotonically and severely as the curriculum progresses (48\% to 8\% correct at $t=1$), consistent with the repeated pool driving memorization-then-collapse rather than a property of dense supervision per se. Removing the reuse in the commit-only arm recovers 10 to 18 points at every stage and roughly halves the repetition increase, confirming that data reuse explains a large part of the dense arm's failure. But the commit-only arm's best checkpoint still trails the base model by 18 points at $t=1$ (30\% versus 48\%), despite using fresh, non-repeated data at every stage. So while overfitting on a reused pool is the dominant driver of the dense arm's collapse, it does not account for all of the degradation: fine-tuning on this curriculum degrades the model even when overfitting is controlled for, and we cannot attribute that residual gap to the loss function alone given the remaining confounds below.
 
-One might object that the dense arm's disadvantage is simply an artifact of our attribution, not a property of the objective: perhaps dense supervision would match or exceed masked-only if it too were given 1,500 unique problems instead of 500 reused ones. Stage 1 speaks to this. At stage 1, neither arm has yet reused any data: the dense arm has seen its 500-problem pool for the first time, and the masked-only arm has seen its first fresh 500-problem pool, so the two checkpoints are trained on equally novel, equally sized data at this point in the curriculum. Dense is nonetheless already well behind masked-only (20\% versus 30\% correct at $t=1$), and the gap widens at every subsequent stage as the dense arm's pool reuse compounds. That the disadvantage is present before any reuse has occurred, and grows monotonically once it does, is consistent with dense supervision being a poor objective in its own right rather than merely a data-starved one; more data would need to reverse an already-negative and worsening trend, not just extend a currently-even one.
+One might object that the dense arm's disadvantage is simply an artifact of our attribution, not a property of the objective: perhaps dense supervision would match or exceed commit-only if it too were given 1,500 unique problems instead of 500 reused ones. Stage 1 speaks to this. At stage 1, neither arm has yet reused any data: the dense arm has seen its 500-problem pool for the first time, and the commit-only arm has seen its first fresh 500-problem pool, so the two checkpoints are trained on equally novel, equally sized data at this point in the curriculum. Dense is nonetheless already well behind commit-only (20\% versus 30\% correct at $t=1$), and the gap widens at every subsequent stage as the dense arm's pool reuse compounds. That the disadvantage is present before any reuse has occurred, and grows monotonically once it does, is consistent with dense supervision being a poor objective in its own right rather than merely a data-starved one; more data would need to reverse an already-negative and worsening trend, not just extend a currently-even one.
 
-Two further observations hold regardless of this attribution question. First, the medium tier collapses to zero under nearly every fine-tuned checkpoint in both arms, so difficulty-selective fragility appears in both the overfit and non-overfit conditions. Second, the masked-only arm shows a schedule crossover absent under dense supervision: its final stage is the best checkpoint at $t=2$ (30\%) and the worst at $t=1$ (20\%), so the residual failure changes shape, not just size.
+Two further observations hold regardless of this attribution question. First, the medium tier collapses to zero under nearly every fine-tuned checkpoint in both arms, so difficulty-selective fragility appears in both the overfit and non-overfit conditions. Second, the commit-only arm shows a schedule crossover absent under dense supervision: its final stage is the best checkpoint at $t=2$ (30\%) and the worst at $t=1$ (20\%), so the residual failure changes shape, not just size.
 
 \begin{table}[!ht]
-  \caption{Supervision-density comparison on the fixed benchmark (training-notebook evaluator; the base row uses the same evaluator). Accuracy is the lenient match rate; repeat-4 is reported at $t{=}1$. The masked-only objective recovers 10 to 18 points at every stage but does not restore base accuracy.}
+  \caption{Supervision-density comparison on the fixed benchmark (training-notebook evaluator; the base row uses the same evaluator). Accuracy is the lenient match rate; repeat-4 is reported at $t{=}1$. The commit-only objective recovers 10 to 18 points at every stage but does not restore base accuracy.}
   \label{tab:curriculum}
   \centering
   \small
   \begin{tabular}{lcc@{\hspace{1.4em}}cc@{\hspace{1.4em}}c}
     \toprule
-    & \multicolumn{2}{c}{Dense (all positions)} & \multicolumn{2}{c}{Masked-only} & \\
+    & \multicolumn{2}{c}{Dense (all masked)} & \multicolumn{2}{c}{commit-only (top-$t$)} & \\
     \cmidrule(r){2-3}\cmidrule(r){4-5}
     Checkpoint & $t{=}1$ & repeat-4 & $t{=}1$ & repeat-4 & $\Delta$ acc.\\
     \midrule
@@ -154,9 +171,11 @@ Two further observations hold regardless of this attribution question. First, th
 
 \subsection{Self-distillation inherits the floor through trajectory yield}
 \label{sec:opsd}
-On-policy self-distillation requires the student model to generate useful trajectories before training can begin. For our math tasks, we consider a rollout useful if it reaches a boxed final answer within the generation budget. Table~\ref{tab:yield} shows that this yield depends strongly on the sampling settings. With temperature 0.9 and a 768-token budget, we obtained 0 usable rollouts from 28 attempts with SDAR-4B-Chat. When we lowered the temperature to 0.3 and increased the budget to 1{,}536 tokens, we obtained 38 usable rollouts from 50 attempts, including 13 correct ones. The failed rollouts were not necessarily poor generations: their mean repeat-4 score was only 0.17, and none produced an incorrect boxed answer. They simply failed to reach a conclusion within the allowed budget. We observed a similar issue with another model, TraDo-4B \citep{wang2025tracerl}, where temperature 0.9 produced no boxed rollouts in the first 36 attempts. These results show that trajectory yield is strongly affected by the sampling settings and should be measured before running self-distillation.
+On-policy self-distillation requires the student model to generate useful trajectories before training can begin. For our math tasks, we consider a rollout useful if it reaches a boxed final answer within the generation budget. Table~\ref{tab:yield} shows that this yield depends strongly on the sampling settings. With temperature 0.9 and a 768-token budget, we obtained 0 usable rollouts from 28 attempts with SDAR-4B-Chat. When we lowered the temperature to 0.3 and increased the budget to 1{,}536 tokens, we obtained 38 usable rollouts from 50 attempts, including 13 correct ones. The failed rollouts were not necessarily poor generations: their mean repeat-4 score was only 0.17, and none produced an incorrect boxed answer. They simply failed to reach a conclusion within the allowed budget. Because temperature and budget were changed together, we cannot separate their contributions. The failure signature, low repetition and no incorrect boxed answers, points to the budget as the binding constraint. We observed a similar issue with another model, TraDo-4B \citep{wang2025tracerl}, where temperature 0.9 produced no boxed rollouts in the first 36 attempts. These results show that trajectory yield is strongly affected by the sampling settings and should be measured before running self-distillation.
 
-This issue is also important for existing diffusion OPSD methods. \citep{dopsd2026} build the self-teacher from the student's own on-policy trajectories, which are the same type of trajectories that we screen here. On GSM8K-scale tasks, they report that using a pass@$k$ budget of $k{=}8$ works better than $k{=}1$, with $k{=}1$ showing a measurable performance drop (Table 8 of their work). Our results provide a possible explanation for why a larger sampling budget is useful: usable trajectories can be rare under some sampling settings. In our SDAR-4B-Chat-b32 experiment, temperature 0.9 produced zero usable trajectories with a 768-token budget. In such a case, simply increasing the number of samples does not solve the problem unless the generation settings also allow the model to reach a conclusion. The required sampling budget therefore depends on the model and the sampling regime. We argue that trajectory yield should be measured and reported before applying self-distillation, because a distillation method that requires usable student trajectories cannot work when those trajectories are not produced in the first place.
+This issue is also important for existing diffusion OPSD methods. \citep{dopsd2026} build the self-teacher from the student's own on-policy trajectories, which are the same type of trajectories that we screen here. On GSM8K-scale tasks, they report that using a pass@$k$ budget of $k{=}8$ works better than $k{=}1$, with $k{=}1$ showing a measurable performance drop (Table 8 of their work). Our results provide a possible explanation for why a larger sampling budget is useful: usable trajectories can be rare under some sampling settings. In our SDAR-4B-Chat-b32 experiment, temperature 0.9 produced zero usable trajectories with a 768-token budget. In such a case, simply increasing the number of samples does not solve the problem unless the generation settings also allow the model to reach a conclusion. The required sampling budget therefore depends on the model and the sampling regime. We argue that trajectory yield should be measured and reported before applying self-distillation, because a distillation method that requires usable student trajectories cannot work when those trajectories are not produced in the first place. 
+
+We also attempted distillation on the 38 accepted trajectories, with a teacher conditioned on a reference solution and given a finer schedule than the student. The loss collapsed to near zero within a few optimizer steps. Inspecting per-position distributions showed why: the privileged conditioning moved the teacher's distribution only marginally away from the student's, so the clipped KL target carried almost no gradient. We report this as a negative result about this particular teacher construction at 4B scale, not about on-policy self-distillation in general; a teacher whose advantage comes from within-block lookahead rather than external context remains untested here.
 
 \begin{table}[H]
   \caption{Trajectory yield of screening rollouts under different sampling parameters. Usable means the rollout contains a boxed final answer. Yield, the precondition for on-policy self-distillation, is set by sampling parameters rather than by model capability.}
@@ -167,9 +186,9 @@ This issue is also important for existing diffusion OPSD methods. \citep{dopsd20
     \toprule
     Model & Temp. / budget & Usable & Correct & Mean repeat-4 \\
     \midrule
-    SDAR-4B-Chat-b32 & 0.9 / \phantom{0,}768   & 0 / 28  & 0 / 28  & .17 \\
-    SDAR-4B-Chat-b32 & 0.3 / 1{,}536 & 38 / 50 & 13 / 50 & --  \\
-    TraDo-4B         & 0.9 / \phantom{0,}768   & 0 / 36  & 0 / 36  & --  \\
+    SDAR-4B-Chat-b32 & 0.9 / \phantom{0,}768   & 0 / 28  & 0 / 28  & 0.17 \\
+    SDAR-4B-Chat-b32 & 0.3 / 1{,}536 & 38 / 50 & 13 / 50 & -  \\
+    TraDo-4B         & 0.9 / \phantom{0,}768   & 0 / 36  & 0 / 36  & -  \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -177,11 +196,11 @@ This issue is also important for existing diffusion OPSD methods. \citep{dopsd20
 \section{Limitations and conclusion}
 \label{sec:conclusion}
 
-Our results have several limitations. We use a single 40-problem benchmark and one random seed, so the accuracy estimates have a binomial uncertainty of about $\pm15$ points. The results should therefore be viewed as evidence of large effects rather than as precise estimates. All fine-tuning experiments use LoRA on a single 4B model, so the behavior may differ with full fine-tuning or larger models. The supervision-density comparison in Section~\ref{sec:sft} also has differences in data reuse and target cleanliness, so the observed gap cannot be attributed to the training objective alone. We use the same evaluator consistently within each comparison and never mix the two evaluators. Finally, we do not yet measure the performance of the model after self-distillation, so our results establish the conditions needed for distillation but not its final benefit.
+Our results have several limitations. We use a single 40-problem benchmark and one random seed, so the accuracy estimates have a binomial uncertainty of about $\pm15$ points. The results should therefore be viewed as evidence of large effects rather than as precise estimates. All fine-tuning experiments use LoRA on a single 4B model, so the behavior may differ with full fine-tuning or larger models. The supervision-density comparison in Section~\ref{sec:sft} also has differences in data reuse and target cleanliness, so the observed gap cannot be attributed to the training objective alone. We use the same evaluator consistently within each comparison and never mix the two evaluators. Finally, we do not yet measure the performance of the model after self-distillation; however, we observed that the privileged teacher distillation on the 38 accepted trajectories collapsed the loss to near zero within a few optimizer steps, because conditioning the teacher on a reference solution and providing it with more timesteps barely moved its per-position distribution away from the student's. Our results hence establish the conditions needed for distillation but not its final benefit.
 
-There are also two important differences between the dense and masked-only training arms. The masked-only arm removed raw reasoning traces and kept end-of-sequence tokens intact, making its training targets cleaner than those of the dense arm. In addition, most reference solutions are longer than the training length limit. As a result, both arms contain truncated targets without a stop token. This may contribute to the non-termination behavior observed across all fine-tuned checkpoints, including those that are not strongly overfit. Because of these confounding factors, Table~\ref{tab:curriculum} should be interpreted carefully. The main result is that fine-tuning hurts the base model under both training objectives. The particularly strong degradation in the dense arm is likely partly caused by reusing the same small data pool across stages. However, even after removing this data-reuse issue, the masked-only arm still performs substantially worse than the base model. We therefore cannot determine how much of this remaining gap is caused by the training objective or by differences in target cleanliness.
+There are also two important differences between the dense and commit-only training arms. The commit-only arm removed raw reasoning traces and kept end-of-sequence tokens intact, making its training targets cleaner than those of the dense arm. In addition, most reference solutions are longer than the training length limit. As a result, both arms contain truncated targets without a stop token. This may contribute to the non-termination behavior observed across all fine-tuned checkpoints, including those that are not strongly overfit. Because of these confounding factors, Table~\ref{tab:curriculum} should be interpreted carefully. The main result is that fine-tuning hurts the base model under both training objectives. The particularly strong degradation in the dense arm is likely partly caused by reusing the same small data pool across stages. However, even after removing this data-reuse issue, the commit-only arm still performs substantially worse than the base model. We therefore cannot determine how much of this remaining gap is caused by the training objective or by differences in target cleanliness.
 
-Overall, we find that the compression limit of a small block-diffusion language model is not a smooth decline in performance. Instead, individual samples undergo a sharp transition from successful generation to repetitive collapse. Fine-tuning makes this limit worse across all variants we tested. The density of supervision is an important factor: masked-only supervision reduces the damage compared with dense supervision, but does not remove it. We also find that self-distillation requires a sufficient number of usable trajectories, and that this trajectory yield can be strongly affected by the sampling temperature and generation budget. These results suggest that future work on few-step diffusion language model distillation should report per-sample collapse rates, supervision density, and trajectory yield before evaluating the final distillation performance.
+Overall, we find that the compression limit of a small block-diffusion language model is not a smooth decline in performance. Instead, individual samples undergo a sharp transition from successful generation to repetitive collapse. Fine-tuning makes this limit worse across all variants we tested. The density of supervision is an important factor: commit-only supervision reduces the damage compared with dense supervision, but does not remove it. We also find that self-distillation requires a sufficient number of usable trajectories, and that this trajectory yield can be strongly affected by the sampling temperature and generation budget. These results suggest that future work on few-step diffusion language model distillation should report per-sample collapse rates, supervision density, and trajectory yield before evaluating the final distillation performance.
 
 
 
@@ -207,7 +226,7 @@ We differ from all of these in what we measure. Prior work reports post-distilla
 
 \textbf{Repeat-4.} For a generation $g$ tokenized into $n$-grams of length 4, let $U_4(g)$ be the number of distinct 4-grams and $C_4(g)$ the total count of 4-grams. Repeat-4 is $\mathcal{R}_4(g) = 1 - U_4(g)/C_4(g)$. Lower values indicate greater lexical diversity; values approaching 1 indicate that the generation is dominated by a small set of repeated 4-grams.
 
-\textbf{Collapse flag.} A generation is flagged as \emph{collapsed} if the online repetition detector halts decoding before the token budget or EOS is reached. The collapse rate over $N$ problems is the fraction so flagged, $\mathrm{Collapse} = \frac{1}{N}\sum_{i=1}^N \mathbb{1}[\text{halted by repetition detector}]$. Collapse and boxed-completion are mutually exclusive stopping causes; every generation ends in exactly one of the two.
+\textbf{Collapse flag.} A generation is flagged as \emph{collapsed} if the online repetition detector halts decoding before the token budget or EOS is reached. The collapse rate over $N$ problems is the fraction so flagged, $\mathrm{Collapse} = \frac{1}{N}\sum_{i=1}^N \mathbb{1}[\text{halted by repetition detector}]$.
 
 \textbf{Reference-solution coverage.} Let $S(g)$ and $S(a^\star_{\text{trace}})$ be the sets of unique content $n$-grams (stopwords removed) in the generation and in the reference reasoning trace, respectively. Coverage is the fraction of reference $n$-grams reproduced in the generation, $\mathrm{Coverage}(g) = |S(g) \cap S(a^\star_{\text{trace}})| \, / \, |S(a^\star_{\text{trace}})|$. Coverage is reported as the mean over the benchmark. Higher coverage indicates closer surface alignment with the reference solution and is measured independently of correctness.
 
@@ -217,6 +236,16 @@ We differ from all of these in what we measure. Prior work reports post-distilla
 
 \textbf{Trajectory yield.} For on-policy self-distillation screening (Section~\ref{sec:opsd}), a rollout is \emph{usable} if $\mathrm{box}(g) \neq \bot$ within the sampling budget. Yield at a given temperature $\tau$ and budget $B$ is $\mathrm{Yield}(\tau, B) = \frac{1}{M}\sum_{i=1}^M \mathbb{1}[\mathrm{box}(g_i) \neq \bot]$ over $M$ screening attempts. Yield is a precondition for downstream distillation and is measured independently of correctness.
 
+\textbf{Dense loss and commit loss.} For a block containing $L$ masked-position candidates at a given denoising state, let $M_t \subseteq \{1, \dots, L\}$ denote the currently masked positions at step $t$, and let $K_t \subseteq M_t$ denote the top-$t$ highest-confidence positions among $M_t$, i.e., exactly those positions committed at that step. The two supervision objectives used in Section~\ref{sec:sft} differ only in which positions they sum the per-position loss $\ell(\cdot)$ over. The dense (all-position) loss supervises every currently masked position in the block,
+\[
+L_{\text{all}} = \frac{1}{|M_t|}\sum_{i \in M_t} \ell(y^i, \hat{y}^i),
+\]
+while the commit (commit-only) loss restricts supervision to the positions actually committed at that step,
+\[
+L_{\text{commit}} = \frac{1}{|K_t|}\sum_{i \in K_t} \ell(y^i, \hat{y}^i).
+\]
+Because $K_t \subseteq M_t$, $L_{\text{commit}}$ is computed over a subset of the positions used by $L_{\text{all}}$; the dense objective supervises positions that will remain masked and be revised at later steps, while the commit objective supervises only the positions that are finalized at the current step.
+
 \section{Hyperparameters and Training Details}
 \label{app:hyperparameters}
 
@@ -224,22 +253,18 @@ We differ from all of these in what we measure. Prior work reports post-distilla
 \label{app:sft_details}
 
 We use the same base model and LoRA configuration for both the dense
-(supervise-all) and masked-only SFT arms. Unless otherwise stated, all
+(supervise-all) and commit-only SFT arms. Unless otherwise stated, all
 hyperparameters are kept identical between the two arms. The main
-difference is the supervision objective: the dense arm supervises all
-block positions, while the masked-only arm supervises only the positions
-that remain masked.
+difference is the supervision objective: the dense arm supervises every currently masked position ($L_{all}$), while the commit-only arm supervises only the top-t positions committed at that step ($L_{commit}$).
 
 \begin{table}[H]
-  \caption{Hyperparameters used for the dense and masked-only SFT arms.
-  All listed optimization and LoRA settings are identical across the two
-  arms.}
+  \caption{Hyperparameters used for the dense and commit-only SFT arms.}
   \label{tab:sft_hyperparameters}
   \centering
   \small
   \begin{tabular}{lcc}
     \toprule
-    Hyperparameter & Dense (supervise-all) & Masked-only \\
+    Hyperparameter & Dense (supervise-all) & commit-only \\
     \midrule
     Base model & SDAR-4B-Chat-b32 & SDAR-4B-Chat-b32 \\
     Block size & 32 & 32 \\
@@ -258,7 +283,7 @@ that remain masked.
     Gradient accumulation & 4 & 4 \\
     Effective batch size & 4 & 4 \\
     Maximum target tokens & 384 & 384 \\
-    GPU & H-100 (12 GB) & Nvidia RTX Pro (102 GB) \\
+    GPU & H-100 (MiG slice, 12 GB) & Nvidia RTX Pro (96 GB) \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -269,9 +294,9 @@ Each stage is trained for two epochs. The effective batch size is four
 sequences, obtained from a per-step batch size of one and gradient
 accumulation over four steps.
 
-The dense and masked-only arms were implemented with the same optimizer,
+The dense and commit-only arms were implemented with the same optimizer,
 learning rate, scheduler, LoRA configuration, batch mechanics, and target
-length. The masked-only arm differs in which positions contribute to the
+length. The commit-only arm differs in which positions contribute to the
 loss. This controlled setup allows us to compare the effect of supervision
 density, while the differences in data sourcing and target preprocessing
 described in Section~\ref{sec:sft} remain important confounds.
@@ -303,7 +328,7 @@ parallelism or model sharding was used in these experiments.
 
 All experiments use a single GPU. The GPU model for the SFT-only control
 was an H100 12\,GB MIG slice, while the other experiments were run on a
-G4 GPU. Runtime differences therefore reflect both the computational
+Nvidia RTX Pro 6000 GPU. Runtime differences therefore reflect both the computational
 workload and the available hardware.
 
 \section{Assets and Licenses}
