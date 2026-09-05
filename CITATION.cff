@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this software or these results, please cite the paper below."
+title: "The Compression Floor: Few-Step Decoding Collapse and the Preconditions for Self-Distillation in Small Block-Diffusion Language Models"
+abstract: >-
+  Measurements of the cost of parallel decoding in a small block-diffusion
+  language model (SDAR-4B-Chat, block sizes 16 and 32), the effect of
+  supervision density in diffusion SFT, and the preconditions required for
+  on-policy self-distillation to train at all at this scale.
+authors:
+  - family-names: "ANONYMIZED"
+    given-names: "ANONYMIZED"
+# TODO before public release: replace the anonymized author block above with
+# real author names, affiliations, and ORCIDs, and fill in the DOI/URL once
+# the paper is posted.
+version: "1.0.0"
+date-released: "2026-08-29"
+license: MIT
+keywords:
+  - diffusion language models
+  - parallel decoding
+  - self-distillation
+  - block diffusion
+  - post-training

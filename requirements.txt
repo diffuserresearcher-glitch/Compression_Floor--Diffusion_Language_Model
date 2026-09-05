@@ -1,0 +1,22 @@
+# Analysis and figure regeneration (CPU only, no GPU needed).
+# Pinned to what produced the shipped results.
+matplotlib>=3.7,<4
+numpy>=1.24,<3
+
+# ----------------------------------------------------------------------------
+# The notebooks install their own GPU stack in-notebook and are NOT covered by
+# this file. They must control install ORDER (torchao removed before any
+# transformers import), which a flat requirements file cannot express.
+#
+# For reference, the notebook environment is:
+#   torch>=2.4          (Colab default CUDA build)
+#   transformers~=4.5x  (required by modeling_sdar.py via trust_remote_code)
+#   accelerate
+#   peft                (LoRA)
+#   datasets            (DeepMath-103K)
+#   sentencepiece
+#
+# Do not pip-install transformers ahead of running a notebook: the setup cell
+# removes torchao first, and an already-imported transformers defeats the pin.
+# See docs/REPRODUCTION.md.
+# ----------------------------------------------------------------------------

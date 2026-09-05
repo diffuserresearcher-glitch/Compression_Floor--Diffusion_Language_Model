@@ -1,0 +1,48 @@
+{
+  "_comment": "Overlap Top-K measurement from notebook 06. Quantifies how much a self-teacher's top-K vocabulary distribution differs from the student's, measured on the student's own denoising states. Overlap near 1.0 means the teacher tells the student what it already believes, so the KL target carries no gradient signal. Metric follows Luo et al. 2026 (arXiv:2606.18195), Eq. 13.",
+
+  "setup": {
+    "model": "JetLM/SDAR-4B-Chat-b32, frozen base weights, no LoRA attached",
+    "n_problems": 20,
+    "n_states_measured": 6224,
+    "topK": 20,
+    "future_reveal_k": 4,
+    "student_schedule": "2 tokens/step (16 sub-steps per block of 32)",
+    "gen_budget": 768,
+    "temperature": 0.3,
+    "note": "Both teacher constructions are scored on the SAME student states. Teacher and student are the same frozen weights; only the conditioning context differs."
+  },
+
+  "teacher_A_privileged_prefix": {
+    "construction": "reference solution appended to the teacher's prompt (the OPSD-1 / AR-style construction)",
+    "mean_overlap": 0.856,
+    "ci95": [0.854, 0.858],
+    "interpretation": "Near-total agreement with the student. The privileged teacher supplies almost no new information, which is the mechanism behind the OPSD-1 distillation loss collapse."
+  },
+
+  "teacher_B_self_future_lookahead": {
+    "construction": "same prompt as the student, plus 4 positions revealed from later in the student's own reveal order (the OPSD-2 / d-OPSD construction)",
+    "mean_overlap": 0.567,
+    "ci95": [0.562, 0.572],
+    "interpretation": "Substantially lower agreement, meaning this teacher has information the student lacks and could in principle transfer it."
+  },
+
+  "gap": {
+    "value": 0.289,
+    "direction": "A - B",
+    "consistency": "The gap holds on all 20 problems individually with no crossover; per-problem means for A span roughly 0.81-0.89 and for B roughly 0.54-0.62."
+  },
+
+  "external_corroboration": {
+    "source": "Luo et al. 2026 (arXiv:2606.18195), Figure 3",
+    "finding": "Reports the same qualitative result at 8B scale on LLaDA: AR-style reference-prefix teachers show Overlap Top-K near 1.0 and fail to transfer new knowledge, while their self-future construction sits in a range that does transfer.",
+    "significance": "Our measurement is an independent replication of that mechanism at 4B scale on a different model family and a different task."
+  },
+
+  "paper_claim": "The OPSD-1 loss collapse is explained by teacher-student distributional agreement, not by a bug in the training loop. The failure is specific to the reference-prefix teacher construction; the self-future construction retains a usable divergence and is the more promising direction.",
+
+  "runtime": {
+    "total_minutes": 154.5,
+    "note": "Inference only. No training, no gradient computation."
+  }
+}

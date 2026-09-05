@@ -1,0 +1,69 @@
+{
+  "_comment": "Final n=100 benchmark. All 10 model configurations at tokens/step 1 and 2. Transcribed from the run output of notebooks 08a and 08b; the per-problem records (rows_raw_masked.jsonl, rows_dense.jsonl) live in the authors' Drive at sdar_bench100/results/ and are the source for the bootstrap intervals below.",
+  "evaluator": "training-notebook harness (Harness B)",
+  "gen_budget": 1024,
+  "decoding": "greedy, confidence-ordered reveal",
+  "n_problems": 100,
+  "benchmark_note": "This 100-problem set was drawn independently and is NOT a superset of the earlier 40-problem benchmark (the in_original_40 flag came back empty for every row, so section 5 built a fresh set rather than extending the old one). The base-model rate therefore differs from the n=40 measurement: 41% here vs 48% there at t=1. Report n=100 as the primary benchmark and do not place n=40 numbers beside it.",
+  "arms": {
+    "raw": "base SDAR-4B-Chat-b32, no adapter",
+    "masked": "masked-only SFT, 1500 problems, 3 disjoint pools (notebook 03)",
+    "dense500": "dense SFT, 500 problems reused across stages (notebook 02)",
+    "dense1500": "dense SFT, 1500 problems, matched data (notebook 07)"
+  },
+
+  "tokens_per_step_1": {
+    "raw":           {"acc": 0.41, "ci": [0.31, 0.51], "strict": 0.41, "easy": 0.56, "medium": 0.40, "hard": 0.12, "repeat4": 0.157, "collapse": 0.00},
+    "masked_s1":     {"acc": 0.33, "ci": [0.24, 0.42], "strict": 0.31, "easy": 0.46, "medium": 0.20, "hard": 0.20, "repeat4": 0.209, "collapse": 0.01},
+    "masked_s2":     {"acc": 0.18, "ci": [0.11, 0.26], "strict": 0.16, "easy": 0.30, "medium": 0.08, "hard": 0.04, "repeat4": 0.246, "collapse": 0.01},
+    "masked_s3":     {"acc": 0.21, "ci": [0.13, 0.29], "strict": 0.21, "easy": 0.32, "medium": 0.08, "hard": 0.12, "repeat4": 0.231, "collapse": 0.00},
+    "dense500_s1":   {"acc": 0.18, "ci": [0.11, 0.26], "strict": 0.18, "easy": 0.34, "medium": 0.04, "hard": 0.00, "repeat4": 0.399, "collapse": 0.06},
+    "dense500_s2":   {"acc": 0.07, "ci": [0.02, 0.12], "strict": 0.07, "easy": 0.12, "medium": 0.04, "hard": 0.00, "repeat4": 0.507, "collapse": 0.15},
+    "dense500_s3":   {"acc": 0.11, "ci": [0.05, 0.18], "strict": 0.11, "easy": 0.18, "medium": 0.08, "hard": 0.00, "repeat4": 0.379, "collapse": 0.02},
+    "dense1500_s1":  {"acc": 0.15, "ci": [0.08, 0.22], "strict": 0.15, "easy": 0.18, "medium": 0.12, "hard": 0.12, "repeat4": 0.439, "collapse": 0.05},
+    "dense1500_s2":  {"acc": 0.10, "ci": [0.05, 0.16], "strict": 0.09, "easy": 0.20, "medium": 0.00, "hard": 0.00, "repeat4": 0.524, "collapse": 0.17},
+    "dense1500_s3":  {"acc": 0.09, "ci": [0.04, 0.15], "strict": 0.09, "easy": 0.18, "medium": 0.00, "hard": 0.00, "repeat4": 0.396, "collapse": 0.03}
+  },
+
+  "tokens_per_step_2": {
+    "raw":           {"acc": 0.32, "ci": [0.23, 0.41], "strict": 0.32, "easy": 0.44, "medium": 0.36, "hard": 0.04, "repeat4": 0.139, "collapse": 0.00},
+    "masked_s1":     {"acc": 0.14, "ci": [0.07, 0.21], "strict": 0.14, "easy": 0.24, "medium": 0.04, "hard": 0.04, "repeat4": 0.410, "collapse": 0.21},
+    "masked_s2":     {"acc": 0.14, "ci": [0.08, 0.21], "strict": 0.14, "easy": 0.28, "medium": 0.00, "hard": 0.00, "repeat4": 0.365, "collapse": 0.04},
+    "masked_s3":     {"acc": 0.12, "ci": [0.06, 0.19], "strict": 0.10, "easy": 0.22, "medium": 0.04, "hard": 0.00, "repeat4": 0.433, "collapse": 0.01},
+    "dense500_s1":   {"acc": 0.04, "ci": [0.01, 0.08], "strict": 0.04, "easy": 0.08, "medium": 0.00, "hard": 0.00, "repeat4": 0.455, "collapse": 0.24},
+    "dense500_s2":   {"acc": 0.03, "ci": [0.00, 0.07], "strict": 0.03, "easy": 0.06, "medium": 0.00, "hard": 0.00, "repeat4": 0.399, "collapse": 0.15},
+    "dense500_s3":   {"acc": 0.01, "ci": [0.00, 0.03], "strict": 0.01, "easy": 0.02, "medium": 0.00, "hard": 0.00, "repeat4": 0.418, "collapse": 0.06},
+    "dense1500_s1":  {"acc": 0.07, "ci": [0.02, 0.12], "strict": 0.07, "easy": 0.14, "medium": 0.00, "hard": 0.00, "repeat4": 0.458, "collapse": 0.25},
+    "dense1500_s2":  {"acc": 0.03, "ci": [0.00, 0.07], "strict": 0.03, "easy": 0.06, "medium": 0.00, "hard": 0.00, "repeat4": 0.427, "collapse": 0.20},
+    "dense1500_s3":  {"acc": 0.04, "ci": [0.01, 0.08], "strict": 0.04, "easy": 0.08, "medium": 0.00, "hard": 0.00, "repeat4": 0.356, "collapse": 0.05}
+  },
+
+  "significance_tests": {
+    "_method": "two-proportion z-test, n=100 per cell, 300 per pooled arm",
+    "supervision_density_masked_vs_dense1500": {
+      "t1": {"s1": {"p": 0.0022}, "s2": {"p": 0.1088}, "s3": {"p": 0.0136},
+             "pooled": {"masked": 0.240, "dense1500": 0.113, "p": 0.00005}},
+      "t2": {"s1": {"p": 0.1088}, "s2": {"p": 0.0086}, "s3": {"p": 0.0369},
+             "pooled": {"masked": 0.133, "dense1500": 0.047, "p": 0.0002}}
+    },
+    "data_effect_dense1500_vs_dense500": {
+      "t1": {"pooled": {"dense1500": 0.113, "dense500": 0.120, "p": 0.80}},
+      "t2": {"pooled": {"dense1500": 0.047, "dense500": 0.027, "p": 0.19}},
+      "conclusion": "No detectable effect at any stage or either schedule. Data volume and target cleanliness do not account for the masked-vs-dense gap."
+    },
+    "vs_raw_baseline_t1": {
+      "masked_s1": {"raw": 0.41, "arm": 0.33, "p": 0.2393, "verdict": "NOT distinguishable from raw"},
+      "masked_s2": {"raw": 0.41, "arm": 0.18, "p": 0.0004, "verdict": "significantly below raw"},
+      "masked_s3": {"raw": 0.41, "arm": 0.21, "p": 0.0022, "verdict": "significantly below raw"},
+      "dense1500_s1": {"raw": 0.41, "arm": 0.15, "p": 0.00003, "verdict": "significantly below raw"},
+      "dense500_s1": {"raw": 0.41, "arm": 0.18, "p": 0.0004, "verdict": "significantly below raw"}
+    }
+  },
+
+  "headline_claims": [
+    "Supervision density determines outcome: pooled masked 24.0% vs dense1500 11.3% at t=1 (p=0.00005), and 13.3% vs 4.7% at t=2 (p=0.0002), on identical training data.",
+    "Data volume and cleanliness do not: dense1500 vs dense500 is null at both schedules (p=0.80, p=0.19).",
+    "Masked-only SFT at the coarsest stage (s1) is not distinguishable from the base model at t=1 (33% vs 41%, p=0.24); degradation appears only at the finer-schedule stages s2 and s3.",
+    "Dense supervision produces a qualitatively different failure: repeat-4 0.38-0.52 versus 0.21-0.25 for masked-only at t=1, with collapse-stop rates up to 25% at t=2."
+  ]
+}
